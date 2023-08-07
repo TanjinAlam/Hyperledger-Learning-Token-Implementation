@@ -4,6 +4,7 @@
     "@nomicfoundation/hardhat-toolbox": "^2.0.2",
     "@openzeppelin/test-helpers": "^0.5.11",
     "@types/jest": "^29.5.3",
+    "@types/mocha": "^10.0.1",
     "hardhat": "^2.13.0",
     "hardhat-gas-reporter": "^1.0.9",
     "ts-node": "^10.9.1",

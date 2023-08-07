@@ -18,6 +18,7 @@ npx hardhat run scripts/studentAttentance.ts
 npx hardhat help
 npx hardhat node
 npx hardhat test
+sol2uml class ./contracts/StudentAttendance.sol 
 REPORT_GAS=true npx hardhat test
 npx hardhat run scripts/deploy.ts
 ```

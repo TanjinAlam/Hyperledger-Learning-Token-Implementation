@@ -8,7 +8,7 @@ import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/access/AccessControlEnumerable.sol";
 import "hardhat/console.sol";
 
-contract StudentAttendance is AccessControlEnumerable, ERC1155, Ownable{
+contract StudentAttendance is  ERC1155, Ownable{
     //define all the event here
     event Approval(address indexed owner, address indexed spender,uint256 tokenId,  uint256 value);
     event InstitutionRegistered(uint256 indexed institutionId, string institutionName, uint registeredTime);

@@ -15,12 +15,12 @@ const { RPC_URL_BESU, PRIV_KEY_1 }: any = process.env;
 const config: HardhatUserConfig = {
   // solidity: "0.8.17",
   networks: {
-    localhost: {
-      accounts: [PRIV_KEY_1],
-      url: "http://localhost:8545",
-      chainId: 31337,
-      gasPrice: 50000000000,
-    },
+    // localhost: {
+    //   accounts: [PRIV_KEY_1],
+    //   url: "http://localhost:8545",
+    //   chainId: 31337,
+    //   gasPrice: 50000000000,
+    // },
     // besu: {
     //   url: "",
     //   accounts: [PRIV_KEY_1],

@@ -2,9 +2,8 @@ import { time, loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { anyValue } from "@nomicfoundation/hardhat-chai-matchers/withArgs";
 import { expect } from "chai";
 import { ethers } from "hardhat";
-import { expectRevert } from "@openzeppelin/test-helpers";
-describe("StudentAttendanceContract", function () {
-  let studentAttendance: any,
+describe("SkillTokenContract", function () {
+  let skillTokenInstance: any,
     events: any,
     superadminWallet: any,
     superadminAddress: any,
@@ -32,6 +31,7 @@ describe("StudentAttendanceContract", function () {
   const instructor1Id = 0;
   const learner1Id = 0;
   const course1Id = 0;
+  const tokenId = 0;
   const fieldOfKnowledge = "Programming";
   const skillName = "Solidity";
   const amount = 1;
@@ -60,24 +60,22 @@ describe("StudentAttendanceContract", function () {
     instructor2Address = accounts[6].address;
     learnerAddress = [learner1Address];
 
-    const StudentAttendance = await ethers.getContractFactory(
-      "StudentAttendance"
-    );
-    studentAttendance = await StudentAttendance.deploy();
+    const SkillToken = await ethers.getContractFactory("SkillToken");
+    skillTokenInstance = await SkillToken.deploy();
   });
   //checking the first address of the hardhat account is the superadmin of the contract
   it("Contract creator is superadmin", async function () {
-    expect(await studentAttendance.owner()).to.be.equal(superadminAddress);
+    expect(await skillTokenInstance.owner()).to.be.equal(superadminAddress);
   });
   //creating institution from from super admin account function call
   it("Should create institution from superadmin account", async function () {
     const currentTimestamp = Math.floor(Date.now() / 1000);
-    await studentAttendance.registerInstitution(
+    await skillTokenInstance.registerInstitution(
       institutionName,
       institutionAddress,
       currentTimestamp
     );
-    const event = await studentAttendance.queryFilter("InstitutionRegistered");
+    const event = await skillTokenInstance.queryFilter("InstitutionRegistered");
     expect(event[0].args.institutionId).to.be.equal(0);
     expect(event[0].args.institutionName).to.be.equal(institutionName);
     expect(event[0].args.registeredTime).to.be.equal(currentTimestamp);
@@ -86,20 +84,27 @@ describe("StudentAttendanceContract", function () {
     const currentTimestamp = Math.floor(Date.now() / 1000);
     try {
       const studentAttendanceContractWithRandomUser =
-        await studentAttendance.connect(randomUserWallet);
-      await expectRevert(
+        await skillTokenInstance.connect(randomUserWallet);
+      //   await expectRevert(
+      //     studentAttendanceContractWithRandomUser.registerInstitution(
+      //       institutionName,
+      //       institutionAddress,
+      //       currentTimestamp
+      //     ),
+      //     "Ownable: caller is not the owner"
+      //   );
+      await expect(
         studentAttendanceContractWithRandomUser.registerInstitution(
           institutionName,
           institutionAddress,
           currentTimestamp
-        ),
-        "Ownable: caller is not the owner"
-      );
+        )
+      ).to.be.revertedWith("Ownable: caller is not the owner");
     } catch (error: any) {}
   });
   it("Should register instructor as individual entity", async function () {
     const studentAttendanceContractWithInstructor =
-      await studentAttendance.connect(instructor1Wallet);
+      await skillTokenInstance.connect(instructor1Wallet);
     const currentTimestamp = Math.floor(Date.now() / 1000);
     await studentAttendanceContractWithInstructor.registerInstructor(
       instructorName,
@@ -120,7 +125,7 @@ describe("StudentAttendanceContract", function () {
   //add instructor under a institution
   it("Should register registered instructor under registered institution", async function () {
     try {
-      const InstructorWallet = await studentAttendance.connect(
+      const InstructorWallet = await skillTokenInstance.connect(
         institutionWallet
       );
       const currentTimestamp = Math.floor(Date.now() / 1000);
@@ -144,15 +149,21 @@ describe("StudentAttendanceContract", function () {
   it("Should not allow an unregister instructor under an institution", async function () {
     try {
       const studentAttendanceContractWithInstitution =
-        await studentAttendance.connect(institutionWallet);
+        await skillTokenInstance.connect(institutionWallet);
       const currentTimestamp = Math.floor(Date.now() / 1000);
-      await expectRevert(
+      //   await expectRevert(
+      //     studentAttendanceContractWithInstitution.addInstructorToInstitution(
+      //       randomUserAddress,
+      //       currentTimestamp
+      //     ),
+      //     "Instructor is not registered"
+      //   );
+      await expect(
         studentAttendanceContractWithInstitution.addInstructorToInstitution(
           randomUserAddress,
           currentTimestamp
-        ),
-        "Instructor is not registered"
-      );
+        )
+      ).to.be.revertedWith("Instructor is not registered");
     } catch (error: any) {
       console.log(error);
     }
@@ -161,24 +172,31 @@ describe("StudentAttendanceContract", function () {
   it("Should not allow an unregister institution invoke add instructor to institution", async function () {
     try {
       const studentAttendanceContractWithInstitution =
-        await studentAttendance.connect(randomUserWallet);
+        await skillTokenInstance.connect(randomUserWallet);
       const currentTimestamp = Math.floor(Date.now() / 1000);
-      await expectRevert(
+      //   await expectRevert(
+      //     studentAttendanceContractWithInstitution.addInstructorToInstitution(
+      //       randomUserAddress,
+      //       currentTimestamp
+      //     ),
+      //     "Only institution admin has the permission"
+      //   );
+
+      await expect(
         studentAttendanceContractWithInstitution.addInstructorToInstitution(
           randomUserAddress,
           currentTimestamp
-        ),
-        "Only institution admin has the permission"
-      );
+        )
+      ).to.be.revertedWith("Only institution admin has the permission");
     } catch (error: any) {
       console.log(error);
     }
   });
 
-  it("Should register a learner", async function () {
+  it("Should register a learner as individual entity", async function () {
     try {
       const studentAttendanceContractWithLearner =
-        await studentAttendance.connect(learner1Wallet);
+        await skillTokenInstance.connect(learner1Wallet);
       const currentTimestamp = Math.floor(Date.now() / 1000);
       await studentAttendanceContractWithLearner.registerLearner(
         learner1Address,
@@ -197,7 +215,7 @@ describe("StudentAttendanceContract", function () {
   });
   it("Should create a course by registered instructor under registered institution", async function () {
     try {
-      const InstructorWallet = await studentAttendance.connect(
+      const InstructorWallet = await skillTokenInstance.connect(
         instructor1Wallet
       );
       const currentTimestamp = Math.floor(Date.now() / 1000);
@@ -205,8 +223,6 @@ describe("StudentAttendanceContract", function () {
         institutionAddress,
         courseName,
         currentTimestamp,
-        totalSupply,
-        "0x",
         learnerAddress
       );
 
@@ -214,24 +230,22 @@ describe("StudentAttendanceContract", function () {
       expect(event[0].args.courseId).to.be.equal(0);
       expect(event[0].args.instructorId).to.be.equal(0);
       expect(event[0].args.institutionId).to.be.equal(0);
-      expect(event[0].args.courseTokenId).to.be.equal(0);
       expect(event[0].args.courseName).to.be.equal(courseName);
-      expect(event[0].args._totalSupply).to.be.equal(totalSupply);
     } catch (error: any) {
       console.log("ERROR", error);
     }
   });
-  //   create a failed transaction of above
+  //   //   //   create a failed transaction of above
   it("Should not add already registered learner to existing course by a valid instructor", async function () {
     try {
-      const Learner2Wallet = await studentAttendance.connect(learner2Wallet);
+      const Learner2Wallet = await skillTokenInstance.connect(learner2Wallet);
       const currentTimestamp = Math.floor(Date.now() / 1000);
       await Learner2Wallet.registerLearner(
         learner2Address,
         learner2Name,
         currentTimestamp
       );
-      const InstructorWallet = await studentAttendance.connect(
+      const InstructorWallet = await skillTokenInstance.connect(
         instructor1Wallet
       );
       await InstructorWallet.addLearnerToCourse(
@@ -239,84 +253,127 @@ describe("StudentAttendanceContract", function () {
         learner2Address,
         institutionAddress
       );
-      await expectRevert(
+      //   await expectRevert(
+      //     InstructorWallet.addLearnerToCourse(
+      //       courseId,
+      //       learner2Address,
+      //       institutionAddress
+      //     ),
+      //     "learner already in the course"
+      //   );
+
+      await expect(
         InstructorWallet.addLearnerToCourse(
           courseId,
           learner2Address,
           institutionAddress
-        ),
-        "learner already in the course"
-      );
+        )
+      ).to.be.revertedWith("learner already in the course");
     } catch (error: any) {
       console.log("ERROR", error);
     }
   });
 
-  //define metadata
-  it("Should set token metadata from the assigned instructor", async function () {
+  //   //define metadata
+  //   it("Should set token metadata from the assigned instructor", async function () {
+  //     try {
+  //       const InstructorWallet = await studentAttendance.connect(
+  //         instructor1Wallet
+  //       );
+  //       const currentTimestamp = Math.floor(Date.now() / 1000);
+  //       await InstructorWallet.setTokenMetadata(
+  //         courseId,
+  //         inistitution1Id,
+  //         instructor1Id,
+  //         fieldOfKnowledge,
+  //         skillName,
+  //         institutionAddress,
+  //         currentTimestamp
+  //       );
+  //       const event = await InstructorWallet.queryFilter("TokenMetadataCreated");
+  //       expect(event[0].args.courseId).to.be.equal(course1Id);
+  //       expect(event[0].args.courseTokenId).to.be.equal(course1Id);
+  //       expect(event[0].args.institutionId).to.be.equal(inistitution1Id);
+  //       expect(event[0].args.instructorId).to.be.equal(instructor1Id);
+  //       expect(event[0].args.skillName).to.be.equal(skillName);
+  //       expect(event[0].args._fieldOfKnowledge).to.be.equal(fieldOfKnowledge);
+  //       expect(event[0].args.registeredTime).to.be.equal(currentTimestamp);
+  //     } catch (error: any) {
+  //       console.log("ERROR", error);
+  //     }
+  //   });
+
+  //   //transfer token to course learner
+  //   it("Should transfer skillToken to course learner", async function () {
+  //     try {
+  //       //   const courseId = intToBytesData(course1Id);
+  //       const currentTimestamp = Math.floor(Date.now() / 1000);
+  //       const InstructorWallet = await skillTokenInstance.connect(
+  //         instructor1Wallet
+  //       );
+  //       //   console.log(
+  //       //     "HERE====",
+  //       //     await studentAttendance.getProgramLearnerDetails(0, learner1Address)
+  //       //   );
+  //       await InstructorWallet.mintSkillToken(
+  //         0,
+  //         amount,
+  //         courseId,
+  //         amount,
+  //         currentTimestamp,
+  //         fieldOfKnowledge,
+  //         skillName
+  //       );
+  //       const event = await InstructorWallet.queryFilter("SkillTokenMinted");
+  //       expect(event[0].args.holderAddress).to.be.equal(learner1Address);
+  //       expect(event[0].args.tokenId).to.be.equal(tokenId);
+  //       expect(event[0].args.courseId).to.be.equal(courseId);
+  //       expect(event[0].args.amount).to.be.equal(amount);
+  //       expect(event[0].args.fieldOfKnowledge).to.be.equal(fieldOfKnowledge);
+  //       expect(event[0].args.skillName).to.be.equal(skillName);
+  //     } catch (error: any) {
+  //       console.log("ERROR", error);
+  //     }
+  //   });
+
+  //   transfer token to course learner
+
+  // start from here
+
+  it("Should transfer skill token to course learner", async function () {
     try {
-      const InstructorWallet = await studentAttendance.connect(
-        instructor1Wallet
-      );
+      //   const courseId = intToBytesData(course1Id);
       const currentTimestamp = Math.floor(Date.now() / 1000);
-      await InstructorWallet.setTokenMetadata(
-        courseId,
-        inistitution1Id,
-        instructor1Id,
-        fieldOfKnowledge,
-        skillName,
-        institutionAddress,
-        currentTimestamp
-      );
-      const event = await InstructorWallet.queryFilter("TokenMetadataCreated");
-      expect(event[0].args.courseId).to.be.equal(course1Id);
-      expect(event[0].args.courseTokenId).to.be.equal(course1Id);
-      expect(event[0].args.institutionId).to.be.equal(inistitution1Id);
-      expect(event[0].args.instructorId).to.be.equal(instructor1Id);
-      expect(event[0].args.skillName).to.be.equal(skillName);
-      expect(event[0].args._fieldOfKnowledge).to.be.equal(fieldOfKnowledge);
-      expect(event[0].args.registeredTime).to.be.equal(currentTimestamp);
-    } catch (error: any) {
-      console.log("ERROR", error);
-    }
-  });
-
-  //transfer token to course learner
-  it("Should transfer token to course learner", async function () {
-    try {
-      const courseId = intToBytesData(course1Id);
-      const InstructorWallet = await studentAttendance.connect(
+      const InstructorWallet = await skillTokenInstance.connect(
         instructor1Wallet
       );
-      //   console.log(
-      //     "HERE====",
-      //     await studentAttendance.getProgramLearnerDetails(0, learner1Address)
-      //   );
-      await InstructorWallet.safeTransferFrom(
-        instructor1Address,
-        learner1Address,
-        course1Id,
+
+      await InstructorWallet.mintSkillToken(
+        0,
         amount,
-        courseId
+        courseId,
+        currentTimestamp,
+        fieldOfKnowledge,
+        skillName
       );
-      const event = await InstructorWallet.queryFilter(
-        "AttendanceTokenTransfered"
-      );
-      expect(event[0].args.from).to.be.equal(instructor1Address);
-      expect(event[0].args.to).to.be.equal(learner1Address);
-      expect(event[0].args.tokenId).to.be.equal(course1Id);
+      const event = await InstructorWallet.queryFilter("SkillTokenMinted");
+      expect(event[0].args.holderAddress).to.be.equal(learner1Address);
+      expect(event[0].args.tokenId).to.be.equal(tokenId);
+      expect(event[0].args.courseId).to.be.equal(courseId);
       expect(event[0].args.amount).to.be.equal(amount);
+      //   expect(event[0].args.fieldOfKnowledge).to.equal(fieldOfKnowledge);
+      //   expect(event[0].args.skillName).to.equal(skillName);
     } catch (error: any) {
       console.log("ERROR", error);
     }
   });
 
-  //transfer token to course learner
+  //   //   //   //transfer token to course learner
   it("Learner should have token", async function () {
     try {
-      const learnerBalance = await studentAttendance.balanceOf(
+      const learnerBalance = await skillTokenInstance.balanceOf(
         learner1Address,
-        course1Id
+        tokenId
       );
       console.log("learnerBalance", learnerBalance);
       expect(learnerBalance).to.equal(1);
@@ -325,26 +382,73 @@ describe("StudentAttendanceContract", function () {
     }
   });
 
-  //transfer token to course learner
-  it("Should not transfer attendance token to anyone", async function () {
+  //   //transfer token to course learner
+  it("Should not transfer skill token to anyone", async function () {
     try {
-      const courseId = intToBytesData(course1Id);
-      const InstructorWallet = await studentAttendance.connect(learner1Wallet);
+      //   const courseId = intToBytesData(course1Id);
+      const InstructorWallet = await skillTokenInstance.connect(learner1Wallet);
 
-      await expectRevert(
+      //   await expectRevert(
+      //     InstructorWallet.safeTransferFrom(
+      //       learner1Address,
+      //       learner2Address,
+      //       course1Id,
+      //       amount,
+      //       courseId
+      //     ),
+      //     "Instructor not found in the institution"
+      //   );
+
+      await expect(
         InstructorWallet.safeTransferFrom(
           learner1Address,
           learner2Address,
           course1Id,
           amount,
           courseId
-        ),
-        "Instructor not found in the institution"
-      );
+        )
+      ).to.be.revertedWith("Batch transfers are disabled in this contract");
     } catch (error: any) {
       console.log("ERROR", error);
     }
   });
+
+  //   //   //   //transfer token to course learner
+  //   it("Should transfer helpint token to anyone", async function () {
+  //     try {
+  //       const courseId = intToBytesData(course1Id);
+  //       const InstructorWallet = await skillTokenInstance.connect(learner1Wallet);
+  //       await InstructorWallet.safeTransferFrom(
+  //         learner1Address,
+  //         learner2Address,
+  //         tokenId,
+  //         amount,
+  //         courseId
+  //       );
+  //       //   await expectRevert(
+  //       //     InstructorWallet.safeTransferFrom(
+  //       //       learner1Address,
+  //       //       learner2Address,
+  //       //       tokenId,
+  //       //       amount,
+  //       //       courseId
+  //       //     ),
+  //       //     "Instructor not found in the institution"
+  //       //   );
+
+  //       const event = await InstructorWallet.queryFilter(
+  //         "HelpingTokenTransfered"
+  //       );
+  //       expect(event[0].args.from).to.be.equal(learner1Address);
+  //       expect(event[0].args.to).to.be.equal(learner2Address);
+  //       expect(event[0].args.tokenId).to.be.equal(tokenId);
+  //       expect(event[0].args.amount).to.be.equal(amount);
+  //       //   expect(event[0].args.courseId).to.be.equal(courseId);
+  //       // Event assertions can verify that the arguments are the expected ones
+  //     } catch (error: any) {
+  //       console.log("ERROR", error);
+  //     }
+  //   });
 
   //   it("Learner should have token", async function () {
   //     try {
